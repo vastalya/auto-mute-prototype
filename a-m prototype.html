@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auto Mute Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Custom font import for 'Inter' */
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+      body {
+        font-family: "Inter", sans-serif; /* Apply Inter font to the whole body */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      /* Custom styles for the message box */
+      .message-box {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #4caf50; /* Green background */
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+        display: none; /* Hidden by default */
+      }
+      .message-box.show {
+        opacity: 1;
+        display: block;
+      }
+
+      /* Styles for the mobile frame */
+      #mobile-frame {
+        width: 360px; /* Typical mobile width */
+        height: 700px; /* Typical mobile height */
+        background-color: #000;
+        border-radius: 36px;
+        box-shadow: 0 0 0 10px #333, 0 0 0 12px #555,
+          0 20px 50px rgba(0, 0, 0, 0.5);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Inner screen container to handle padding */
+      #mobile-screen-content {
+        flex-grow: 1;
+        background-color: #121212; /* Matches body background */
+        padding: 16px;
+        overflow-y: auto; /* Enable scrolling for content */
+      }
+
+      /* Status bar styling */
+      .status-bar {
+        height: 24px;
+        background-color: #1a1a1a;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 12px;
+        font-size: 0.75rem;
+        color: #bbb;
+        border-top-left-radius: 30px;
+        border-top-right-radius: 30px;
+      }
+
+      /* Custom toggle switch styling */
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 48px; /* Width of the toggle track */
+        height: 28px; /* Height of the toggle track */
+      }
+
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #4a4a4a; /* Off state background */
+        transition: 0.4s;
+        border-radius: 28px; /* Rounded corners for the track */
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 20px; /* Height of the thumb */
+        width: 20px; /* Width of the thumb */
+        left: 4px; /* Initial position of the thumb */
+        bottom: 4px; /* Initial position of the thumb */
+        background-color: white; /* Thumb color */
+        transition: 0.4s;
+        border-radius: 50%; /* Make the thumb round */
+      }
+
+      input:checked + .slider {
+        background-color: #8b5cf6; /* On state background (purple-500) */
+      }
+
+      input:checked + .slider:before {
+        transform: translateX(20px); /* Move thumb to the right when checked */
+      }
+
+      /* Animation for quick settings icons */
+      .card:hover svg {
+        transform: scale(1.1);
+        transition: transform 0.2s ease-in-out;
+      }
+      .card:hover span {
+        color: #a78bfa; /* Slightly lighter purple on hover */
+        transition: color 0.2s ease-in-out;
+      }
+
+      /* Dynamic screen transitions */
+      .screen-transition-enter {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      .screen-transition-enter-active {
+        opacity: 1;
+        transform: translateX(0);
+        transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+      }
+      .screen-transition-exit {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      .screen-transition-exit-active {
+        opacity: 0;
+        transform: translateX(-100%);
+        transition: opacity 0.3s ease-in, transform 0.3s ease-in;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-900 text-white p-4 min-h-screen flex items-center justify-center"
+  >
+    <div id="mobile-frame">
+      <div class="status-bar">
+        <span>9:41 AM</span>
+        <div class="flex items-center gap-1">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-2.5 w-2.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M5 17a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5z"
+            />
+            <line x1="17" y1="4" x2="17" y2="7" />
+            <line x1="7" y1="4" x2="7" y2="7" />
+          </svg>
+          <span>85%</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-2.5 w-2.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M16 18a2 2 0 0 0 2-2V7l-7-7-7 7v9a2 2 0 0 0 2 2h10z" />
+            <line x1="12" y1="2" x2="12" y2="12" />
+          </svg>
+        </div>
+      </div>
+
+      <div id="mobile-screen-content">
+        <div id="screen1" class="transition-all duration-300 ease-in-out">
+          <h2 class="text-3xl font-bold mb-6 text-center text-purple-400">
+            Quick Settings
+          </h2>
+          <div
+            id="muteStatus"
+            class="bg-gray-700 text-gray-300 text-sm font-medium py-2 px-4 rounded-full text-center mb-6 hidden"
+          >
+            Auto-Mute: <span class="text-red-400">Inactive</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
+            <div
+              class="card bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center justify-center text-center hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-8 w-8 text-blue-400 mb-2"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                <line x1="12" y1="20" x2="12" y2="20" />
+              </svg>
+              <span class="text-sm font-medium">Wi-Fi</span>
+            </div>
+            <div
+              class="card bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center justify-center text-center hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-8 w-8 text-blue-400 mb-2"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M7 7l10 10L12 22V2l5 5L7 17" />
+              </svg>
+              <span class="text-sm font-medium">Bluetooth</span>
+            </div>
+            <div
+              class="feature bg-purple-700 hover:bg-purple-800 text-white font-bold py-5 px-6 rounded-lg shadow-lg cursor-pointer transition-all duration-200 ease-in-out flex flex-col items-center justify-center text-center"
+              onclick="switchScreen('screen1', 'screen2')"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-8 w-8 mb-2"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M11 5L6 9H2v6h4l5 4V5zM22 9l-3 3m0 0l3 3m-3-3l-3 3m3-3l3-3"
+                />
+              </svg>
+              <span class="text-sm font-medium">Auto-Mute</span>
+            </div>
+            <div
+              class="card bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center justify-center text-center hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-8 w-8 text-yellow-400 mb-2"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M17 18a2 2 0 0 0 2-2V7l-7-7-7 7v9a2 2 0 0 0 2 2h10z" />
+                <line x1="12" y1="2" x2="12" y2="12" />
+              </svg>
+              <span class="text-sm font-medium">Flashlight</span>
+            </div>
+            <div
+              class="card bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center justify-center text-center hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-8 w-8 text-green-400 mb-2"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+                />
+                <circle cx="12" cy="9" r="3" />
+              </svg>
+              <span class="text-sm font-medium">Location</span>
+            </div>
+            <div
+              class="card bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center justify-center text-center hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-8 w-8 text-red-400 mb-2"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+              </svg>
+              <span class="text-sm font-medium">Do Not Disturb</span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="screen2"
+          class="transition-all duration-300 ease-in-out hidden"
+        >
+          <button
+            onclick="switchScreen('screen2', 'screen1')"
+            class="mb-6 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium transition-colors duration-200 ease-in-out flex items-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            Back
+          </button>
+          <h2 class="text-3xl font-bold mb-6 text-center text-purple-400">
+            Auto-Mute Settings
+          </h2>
+
+          <div class="card bg-gray-800 p-4 rounded-lg shadow-md mb-4">
+            <div class="flex items-center justify-between text-lg font-medium">
+              <span>Mute by Location</span>
+              <label class="toggle-switch">
+                <input
+                  type="checkbox"
+                  id="locationToggle"
+                  onchange="toggleSection('locationSection'); updateMuteStatus()"
+                />
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div
+              id="locationSection"
+              class="mt-4 hidden transition-all duration-300 ease-in-out"
+            >
+              <div id="locationInputSection">
+                <div class="mb-3">
+                  <label
+                    for="addressInput"
+                    class="block text-sm font-medium text-gray-300 mb-1"
+                    >Enter Address:</label
+                  >
+                  <input
+                    type="text"
+                    id="addressInput"
+                    placeholder="e.g., 1600 Amphitheatre Parkway, Mountain View"
+                    class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div class="mb-3">
+                  <label
+                    for="landmarkInput"
+                    class="block text-sm font-medium text-gray-300 mb-1"
+                    >Location Name (Optional):</label
+                  >
+                  <input
+                    type="text"
+                    id="landmarkInput"
+                    placeholder="e.g., Office, Library, Home"
+                    class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div class="mb-3">
+                  <label
+                    for="radiusInput"
+                    class="block text-sm font-medium text-gray-300 mb-1"
+                    >Mute Radius (meters):</label
+                  >
+                  <input
+                    type="number"
+                    id="radiusInput"
+                    min="50"
+                    max="5000"
+                    value="100"
+                    class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <button
+                  onclick="showMapSelection()"
+                  class="mt-3 w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium shadow-md transition-colors duration-200 ease-in-out"
+                >
+                  Select Location on Map
+                </button>
+                <button
+                  onclick="showMessage('Using current location for auto-mute!')"
+                  class="mt-3 w-full px-4 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-medium shadow-md transition-colors duration-200 ease-in-out"
+                >
+                  Use Current Location
+                </button>
+                <button
+                  onclick="saveLocation()"
+                  class="mt-3 w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium shadow-md transition-colors duration-200 ease-in-out"
+                >
+                  Save Location
+                </button>
+              </div>
+
+              <div id="mapViewSection" class="hidden mt-4">
+                <p class="text-sm text-gray-400 mb-2">
+                  Tap on the map to set the mute zone.
+                </p>
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15302.26033324128!2d80.43577785!3d16.30018515!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a4a75510252637b%3A0x4a75c1a7b458850!2sGuntur%2C%20Andhra%20Pradesh!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin"
+                  width="100%"
+                  height="192"
+                  style="border: 0"
+                  allowfullscreen=""
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  class="rounded-lg border border-gray-600"
+                  aria-hidden="false"
+                  tabindex="0"
+                ></iframe>
+                <button
+                  onclick="showMessage('Location confirmed on map!')"
+                  class="mt-3 w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium shadow-md transition-colors duration-200 ease-in-out"
+                >
+                  Confirm Location on Map
+                </button>
+                <button
+                  onclick="hideMapSelection()"
+                  class="mt-3 w-full px-4 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-medium shadow-md transition-colors duration-200 ease-in-out"
+                >
+                  Go Back to Location Entry
+                </button>
+              </div>
+
+              <div class="mt-6">
+                <h4 class="text-md font-semibold text-gray-300 mb-2">
+                  Saved Locations:
+                </h4>
+                <ul id="savedLocationsList" class="space-y-2">
+                  <li
+                    class="flex items-center justify-between p-2 bg-gray-700 rounded-lg text-sm"
+                  >
+                    <span>VVIT, Nambur, Andhra Pradesh, India (College)</span>
+                    <button
+                      onclick="this.parentNode.remove(); showMessage('Location removed!');"
+                      class="text-red-400 hover:text-red-500"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                  <li
+                    class="flex items-center justify-between p-2 bg-gray-700 rounded-lg text-sm"
+                  >
+                    <span>City Center (123 Market St)</span>
+                    <button
+                      onclick="this.parentNode.remove(); showMessage('Location removed!');"
+                      class="text-red-400 hover:text-red-500"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                  <li
+                    class="flex items-center justify-between p-2 bg-gray-700 rounded-lg text-sm"
+                  >
+                    <span>Home (123 Main St)</span>
+                    <button
+                      onclick="this.parentNode.remove(); showMessage('Home location removed!');"
+                      class="text-red-400 hover:text-red-500"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                </ul>
+              </div>
+
+              <p class="text-sm text-gray-400 mt-3 text-center">
+                (When your device enters this area, it will automatically mute.
+                It will unmute when you leave.)
+              </p>
+            </div>
+          </div>
+
+          <div class="card bg-gray-800 p-4 rounded-lg shadow-md mb-4">
+            <div class="flex items-center justify-between text-lg font-medium">
+              <span>Mute by Timer</span>
+              <label class="toggle-switch">
+                <input
+                  type="checkbox"
+                  id="timerToggle"
+                  onchange="toggleSection('timerSection'); updateMuteStatus()"
+                />
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div
+              id="timerSection"
+              class="mt-4 hidden transition-all duration-300 ease-in-out"
+            >
+              <div class="flex gap-3 mb-3">
+                <div class="flex-1">
+                  <label
+                    for="hoursInput"
+                    class="block text-sm font-medium text-gray-300 mb-1"
+                    >Hours:</label
+                  >
+                  <input
+                    type="number"
+                    id="hoursInput"
+                    min="0"
+                    max="23"
+                    value="0"
+                    class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div class="flex-1">
+                  <label
+                    for="minutesInput"
+                    class="block text-sm font-medium text-gray-300 mb-1"
+                    >Minutes:</label
+                  >
+                  <input
+                    type="number"
+                    id="minutesInput"
+                    min="0"
+                    max="59"
+                    value="0"
+                    class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div class="flex-1">
+                  <label
+                    for="secondsInput"
+                    class="block text-sm font-medium text-gray-300 mb-1"
+                    >Seconds:</label
+                  >
+                  <input
+                    type="number"
+                    id="secondsInput"
+                    min="0"
+                    max="59"
+                    value="0"
+                    class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+              <button
+                onclick="showMessage('Timer set!')"
+                class="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium shadow-md transition-colors duration-200 ease-in-out"
+              >
+                Set Duration
+              </button>
+            </div>
+          </div>
+
+          <div class="card bg-gray-800 p-4 rounded-lg shadow-md mb-4">
+            <div class="flex items-center justify-between text-lg font-medium">
+              <span>Exclude Contacts</span>
+              <label class="toggle-switch">
+                <input
+                  type="checkbox"
+                  id="contactsToggle"
+                  onchange="toggleSection('contactsSection')"
+                />
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div
+              id="contactsSection"
+              class="mt-4 hidden transition-all duration-300 ease-in-out"
+            >
+              <div class="space-y-3">
+                <div
+                  class="flex items-center justify-between p-2 bg-gray-700 rounded-lg"
+                >
+                  <div class="flex items-center">
+                    <div
+                      class="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3"
+                    >
+                      JD
+                    </div>
+                    <div>
+                      <p class="font-medium">John Doe</p>
+                      <p class="text-sm text-gray-400">555-1234</p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    class="form-checkbox h-5 w-5 text-purple-600 rounded-md focus:ring-purple-500"
+                  />
+                </div>
+                <div
+                  class="flex items-center justify-between p-2 bg-gray-700 rounded-lg"
+                >
+                  <div class="flex items-center">
+                    <div
+                      class="h-10 w-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3"
+                    >
+                      JA
+                    </div>
+                    <div>
+                      <p class="font-medium">Jane Appleseed</p>
+                      <p class="text-sm text-gray-400">555-5678</p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    class="form-checkbox h-5 w-5 text-purple-600 rounded-md focus:ring-purple-500"
+                  />
+                </div>
+                <div
+                  class="flex items-center justify-between p-2 bg-gray-700 rounded-lg"
+                >
+                  <div class="flex items-center">
+                    <div
+                      class="h-10 w-10 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3"
+                    >
+                      SM
+                    </div>
+                    <div>
+                      <p class="font-medium">Sam Miller</p>
+                      <p class="text-sm text-gray-400">555-9012</p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    class="form-checkbox h-5 w-5 text-purple-600 rounded-md focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+              <button
+                onclick="showMessage('Contact exclusions saved!')"
+                class="mt-4 w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium shadow-md transition-colors duration-200 ease-in-out"
+              >
+                Save Exclusions
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="navigation-bar hidden"></div>
+    </div>
+
+    <div id="messageBox" class="message-box"></div>
+
+    <script>
+      /**
+       * Displays a temporary message box with the given text.
+       * The message box will automatically hide after 3 seconds.
+       * @param {string} message - The message to display.
+       */
+      function showMessage(message) {
+        const messageBox = document.getElementById("messageBox");
+        messageBox.textContent = message;
+        messageBox.classList.add("show"); // Make the message box visible
+
+        // Hide the message box after 3 seconds
+        setTimeout(() => {
+          messageBox.classList.remove("show");
+        }, 3000);
+      }
+
+      /**
+       * Switches between two screens with a transition effect.
+       * Applies exit animation to the current screen and entry animation to the next screen.
+       * @param {string} currentScreenId - The ID of the screen currently visible.
+       * @param {string} nextScreenId - The ID of the screen to transition to.
+       */
+      function switchScreen(currentScreenId, nextScreenId) {
+        const currentScreen = document.getElementById(currentScreenId);
+        const nextScreen = document.getElementById(nextScreenId);
+
+        // Start exit transition for the current screen
+        currentScreen.classList.add("screen-transition-exit-active");
+
+        // After the exit transition completes, hide the current screen and show the next
+        setTimeout(() => {
+          currentScreen.classList.add("hidden");
+          currentScreen.classList.remove("screen-transition-exit-active"); // Clean up exit class
+
+          nextScreen.classList.remove("hidden");
+          nextScreen.classList.add("screen-transition-enter-active"); // Start entry transition for next screen
+
+          // After the entry transition completes, clean up entry class
+          setTimeout(() => {
+            nextScreen.classList.remove("screen-transition-enter-active");
+          }, 300); // Matches CSS transition duration
+        }, 300); // Matches CSS transition duration
+
+        // Specific logic for resetting state when navigating back to screen1
+        if (nextScreenId === "screen1") {
+          document
+            .getElementById("locationInputSection")
+            .classList.remove("hidden");
+          document.getElementById("mapViewSection").classList.add("hidden");
+        }
+      }
+
+      /**
+       * Toggles the visibility of a specific section within a screen.
+       * Applies a fade/zoom transition effect.
+       * @param {string} sectionId - The ID of the section to toggle.
+       */
+      function toggleSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        if (section.classList.contains("hidden")) {
+          // If section is hidden, show it with an entry transition
+          section.classList.remove("hidden");
+          setTimeout(() => {
+            section.classList.add("screen-transition-enter-active");
+            // Remove opacity and scale classes if they were added for exit transition
+            section.classList.remove("opacity-0", "scale-95");
+          }, 10); // Small delay to ensure 'hidden' is removed before transition starts
+        } else {
+          // If section is visible, hide it with an exit transition
+          section.classList.add("screen-transition-exit-active");
+          setTimeout(() => {
+            section.classList.add("hidden");
+            section.classList.remove("screen-transition-exit-active"); // Clean up exit class
+            // Re-add opacity and scale for next entry transition
+            section.classList.add("opacity-0", "scale-95");
+          }, 300); // Matches CSS transition duration
+        }
+      }
+
+      /**
+       * Updates the mute status indicator on the main screen (screen1).
+       * Checks if location or timer auto-mute features are active.
+       */
+      function updateMuteStatus() {
+        const muteStatus = document.getElementById("muteStatus");
+        const locationActive =
+          document.getElementById("locationToggle").checked;
+        const timerActive = document.getElementById("timerToggle").checked;
+
+        if (locationActive || timerActive) {
+          muteStatus.classList.remove("hidden"); // Show the status indicator
+          muteStatus.querySelector("span").textContent = "Active"; // Set text to Active
+          muteStatus.querySelector("span").classList.remove("text-red-400"); // Remove red color
+          muteStatus.querySelector("span").classList.add("text-green-400"); // Add green color
+        } else {
+          muteStatus.querySelector("span").textContent = "Inactive"; // Set text to Inactive
+          muteStatus.querySelector("span").classList.remove("text-green-400"); // Remove green color
+          muteStatus.querySelector("span").classList.add("text-red-400"); // Add red color
+          // Hide the status indicator only if no auto-mute features are active
+          if (!locationActive && !timerActive) {
+            muteStatus.classList.add("hidden");
+          }
+        }
+      }
+
+      /**
+       * Shows the map selection view within the location settings.
+       * Hides the address input fields and displays a map placeholder.
+       */
+      function showMapSelection() {
+        document.getElementById("locationInputSection").classList.add("hidden");
+        document.getElementById("mapViewSection").classList.remove("hidden");
+        showMessage("Map view activated. Tap to select location.");
+      }
+
+      /**
+       * Hides the map selection view and returns to the address input fields.
+       */
+      function hideMapSelection() {
+        document
+          .getElementById("locationInputSection")
+          .classList.remove("hidden");
+        document.getElementById("mapViewSection").classList.add("hidden");
+        showMessage("Returned to address entry.");
+      }
+
+      /**
+       * Simulates saving a location for auto-muting.
+       * Adds the entered location to a list of saved locations.
+       */
+      function saveLocation() {
+        const addressInput = document.getElementById("addressInput");
+        const landmarkInput = document.getElementById("landmarkInput");
+        const radiusInput = document.getElementById("radiusInput");
+
+        const address = addressInput.value;
+        const landmark = landmarkInput.value;
+        const radius = radiusInput.value;
+
+        if (address.trim() === "") {
+          showMessage("Please enter an address to save the location.");
+          return;
+        }
+
+        const locationText = landmark ? `${landmark} (${address})` : address;
+        const savedLocationsList =
+          document.getElementById("savedLocationsList");
+        const newListItem = document.createElement("li");
+        newListItem.className =
+          "flex items-center justify-between p-2 bg-gray-700 rounded-lg text-sm";
+        newListItem.innerHTML = `
+                <span>${locationText} (Radius: ${radius}m)</span>
+                <button onclick="this.parentNode.remove(); showMessage('Location removed!');" class="text-red-400 hover:text-red-500">Remove</button>
+            `;
+        savedLocationsList.appendChild(newListItem);
+        showMessage("Location saved for auto-muting!");
+
+        // Clear inputs after saving
+        addressInput.value = "";
+        landmarkInput.value = "";
+        radiusInput.value = "100"; // Reset to default
+      }
+
+      // Event listener to update mute status when the page loads
+      document.addEventListener("DOMContentLoaded", updateMuteStatus);
+    </script>
+  </body>
+</html>
