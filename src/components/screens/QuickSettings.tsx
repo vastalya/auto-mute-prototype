@@ -28,19 +28,19 @@ const QuickSettings: React.FC<QuickSettingsProps> = ({ onNavigateToSettings }) =
   const activeFeatures = getActiveFeatures();
 
   return (
-    <div className="animate-fade-in">
-      <h2 className="text-3xl font-bold mb-6 text-center text-purple-400">
+    <div className="animate-bounce-in">
+      <h2 className="text-3xl font-bold mb-6 text-center text-purple-400 neon-text animate-float">
         Quick Settings
       </h2>
       
       {state.isActive && (
-        <div className="bg-gray-700 text-gray-300 text-sm font-medium py-3 px-4 rounded-lg text-center mb-6 border-l-4 border-green-400">
+        <div className="glass bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-gray-300 text-sm font-medium py-4 px-4 rounded-xl text-center mb-6 border-l-4 border-green-400 glow-green animate-slide-up">
           <div className="flex items-center justify-center gap-2 mb-1">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <div className="w-3 h-3 bg-green-400 rounded-full animate-heartbeat shadow-neon"></div>
             <span className="text-green-400 font-semibold">Auto-Mute Active</span>
           </div>
           {activeFeatures.length > 0 && (
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-gray-400 animate-shimmer">
               Active: {activeFeatures.join(', ')}
             </div>
           )}
@@ -51,27 +51,34 @@ const QuickSettings: React.FC<QuickSettingsProps> = ({ onNavigateToSettings }) =
         {quickSettingsItems.map((item, index) => (
           <div
             key={index}
-            className="bg-gray-800 p-4 rounded-lg shadow-md flex flex-col items-center justify-center text-center hover:bg-gray-700 transition-all duration-200 cursor-pointer group"
+            className="stagger-item bg-gradient-to-br from-gray-800 to-gray-900 p-4 rounded-xl shadow-lg flex flex-col items-center justify-center text-center hover:bg-gradient-to-br hover:from-gray-700 hover:to-gray-800 transition-all duration-300 cursor-pointer group magnetic ripple glass border border-gray-700/50"
           >
-            <item.icon className={`h-8 w-8 ${item.color} mb-2 group-hover:scale-110 transition-transform duration-200`} />
-            <span className="text-sm font-medium group-hover:text-purple-300 transition-colors duration-200">
+            <item.icon className={`h-8 w-8 ${item.color} mb-2 group-hover:scale-125 group-hover:rotate-12 transition-all duration-300 drop-shadow-lg`} />
+            <span className="text-sm font-medium group-hover:text-purple-300 transition-colors duration-300">
               {item.label}
             </span>
           </div>
         ))}
         
         <div
-          className={`${
+          className={`stagger-item ${
             state.isActive 
-              ? 'bg-green-600 hover:bg-green-700 border-2 border-green-400' 
-              : 'bg-purple-700 hover:bg-purple-800'
-          } text-white font-bold py-5 px-6 rounded-lg shadow-lg cursor-pointer transition-all duration-200 ease-in-out flex flex-col items-center justify-center text-center group relative`}
+              ? 'bg-gradient-to-br from-green-600 to-green-700 border-2 border-green-400 glow-green animate-glow' 
+              : 'bg-gradient-to-br from-purple-700 to-purple-800 glow-purple'
+          } text-white font-bold py-5 px-6 rounded-xl shadow-xl cursor-pointer transition-all duration-300 ease-in-out flex flex-col items-center justify-center text-center group relative magnetic ripple liquid-button overflow-hidden`}
           onClick={onNavigateToSettings}
         >
           {state.isActive && (
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+            <>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full animate-ping"></div>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full"></div>
+              {/* Particle effects */}
+              <div className="particle" style={{ left: '20%', animationDelay: '0s' }}></div>
+              <div className="particle" style={{ left: '50%', animationDelay: '0.5s' }}></div>
+              <div className="particle" style={{ left: '80%', animationDelay: '1s' }}></div>
+            </>
           )}
-          <VolumeX className="h-8 w-8 mb-2 group-hover:scale-110 transition-transform duration-200" />
+          <VolumeX className={`h-8 w-8 mb-2 group-hover:scale-125 transition-all duration-300 drop-shadow-lg ${state.isActive ? 'animate-wiggle' : ''}`} />
           <span className="text-sm font-medium">Auto-Mute</span>
         </div>
       </div>

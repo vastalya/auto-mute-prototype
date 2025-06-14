@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Play, Pause, Square } from 'lucide-react';
+import { Clock, Play, Pause, Square, Timer } from 'lucide-react';
 import { useAutoMute } from '../../contexts/AutoMuteContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import ToggleSwitch from '../ToggleSwitch';
@@ -100,12 +100,20 @@ const TimerMuteSection: React.FC = () => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getProgressPercentage = () => {
+    const totalSeconds = timerInput.hours * 3600 + timerInput.minutes * 60 + timerInput.seconds;
+    if (totalSeconds === 0) return 0;
+    return ((totalSeconds - timeLeft) / totalSeconds) * 100;
+  };
+
   return (
-    <div className="bg-gray-800 p-4 rounded-lg shadow-md">
-      <div className="flex items-center justify-between text-lg font-medium mb-4">
-        <div className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-blue-400" />
-          <span>Mute by Timer</span>
+    <div className="glass bg-gradient-to-br from-gray-800/80 to-gray-900/80 p-6 rounded-2xl shadow-xl border border-gray-700/50 backdrop-blur-sm">
+      <div className="flex items-center justify-between text-lg font-medium mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-500/20 rounded-lg">
+            <Clock className="h-6 w-6 text-blue-400 animate-pulse" />
+          </div>
+          <span className="text-white">Mute by Timer</span>
         </div>
         <ToggleSwitch
           checked={state.timerMute.enabled}
@@ -114,25 +122,37 @@ const TimerMuteSection: React.FC = () => {
       </div>
 
       {state.timerMute.enabled && (
-        <div className="space-y-4 animate-fade-in">
+        <div className="space-y-6 animate-zoom-in">
           {timeLeft > 0 && (
-            <div className="text-center">
-              <div className="text-3xl font-mono font-bold text-purple-400 mb-2">
-                {formatDisplayTime(timeLeft)}
+            <div className="text-center animate-bounce-in">
+              <div className="relative mb-6">
+                <div className="text-5xl font-mono font-bold text-blue-400 mb-2 neon-text animate-heartbeat">
+                  {formatDisplayTime(timeLeft)}
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2 mb-4">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${getProgressPercentage()}%` }}
+                  ></div>
+                </div>
+                {isRunning && (
+                  <div className="absolute -inset-4 bg-blue-500/10 rounded-full animate-ping"></div>
+                )}
               </div>
-              <div className="flex justify-center gap-2">
+              
+              <div className="flex justify-center gap-4">
                 <button
                   onClick={handlePauseTimer}
-                  className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-white font-medium transition-colors duration-200 flex items-center gap-2"
+                  className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 rounded-xl text-white font-medium transition-all duration-300 flex items-center gap-2 magnetic ripple shadow-lg"
                 >
-                  {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  {isRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
                   {isRunning ? 'Pause' : 'Resume'}
                 </button>
                 <button
                   onClick={handleStopTimer}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-medium transition-colors duration-200 flex items-center gap-2"
+                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 rounded-xl text-white font-medium transition-all duration-300 flex items-center gap-2 magnetic ripple shadow-lg"
                 >
-                  <Square className="h-4 w-4" />
+                  <Square className="h-5 w-5" />
                   Stop
                 </button>
               </div>
@@ -140,10 +160,10 @@ const TimerMuteSection: React.FC = () => {
           )}
 
           {timeLeft === 0 && (
-            <div>
-              <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="animate-slide-up">
+              <div className="grid grid-cols-3 gap-4 mb-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Hours:
                   </label>
                   <input
@@ -152,11 +172,11 @@ const TimerMuteSection: React.FC = () => {
                     onChange={(e) => setTimerInput({ ...timerInput, hours: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) })}
                     min="0"
                     max="23"
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full p-4 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 glass backdrop-blur-sm text-lg font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Minutes:
                   </label>
                   <input
@@ -165,11 +185,11 @@ const TimerMuteSection: React.FC = () => {
                     onChange={(e) => setTimerInput({ ...timerInput, minutes: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
                     min="0"
                     max="59"
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full p-4 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 glass backdrop-blur-sm text-lg font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Seconds:
                   </label>
                   <input
@@ -178,24 +198,26 @@ const TimerMuteSection: React.FC = () => {
                     onChange={(e) => setTimerInput({ ...timerInput, seconds: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) })}
                     min="0"
                     max="59"
-                    className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full p-4 bg-gray-700/50 border border-gray-600/50 rounded-xl text-white text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 glass backdrop-blur-sm text-lg font-mono"
                   />
                 </div>
               </div>
               
               <button
                 onClick={handleStartTimer}
-                className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium shadow-md transition-colors duration-200 flex items-center justify-center gap-2"
+                className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl text-white font-medium shadow-lg transition-all duration-300 flex items-center justify-center gap-3 magnetic ripple liquid-button glow-purple"
               >
-                <Play className="h-4 w-4" />
+                <Timer className="h-5 w-5 animate-spin" />
                 Start Timer
               </button>
             </div>
           )}
 
-          <p className="text-sm text-gray-400 text-center">
-            Your device will be muted for the specified duration.
-          </p>
+          <div className="text-center">
+            <p className="text-sm text-gray-400 bg-gray-800/30 p-3 rounded-lg border border-gray-700/50">
+              Your device will be muted for the specified duration.
+            </p>
+          </div>
         </div>
       )}
     </div>
