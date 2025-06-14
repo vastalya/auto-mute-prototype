@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .mobile-frame {
+    width: 360px;
+    height: 700px;
+    background-color: #000;
+    border-radius: 36px;
+    box-shadow: 
+      0 0 0 10px #333, 
+      0 0 0 12px #555,
+      0 20px 50px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 28px;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #4a4a4a;
+    transition: 0.4s;
+    border-radius: 28px;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+  }
+
+  input:checked + .slider {
+    background-color: #8b5cf6;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(20px);
+  }
+
+  .screen-transition-enter {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+
+  .screen-transition-enter-active {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  }
+
+  .screen-transition-exit {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .screen-transition-exit-active {
+    opacity: 0;
+    transform: translateX(-100%);
+    transition: opacity 0.3s ease-in, transform 0.3s ease-in;
+  }
+}
