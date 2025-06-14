@@ -17,6 +17,16 @@ const QuickSettings: React.FC<QuickSettingsProps> = ({ onNavigateToSettings }) =
     { icon: Moon, label: 'Do Not Disturb', color: 'text-red-400' },
   ];
 
+  const getActiveFeatures = () => {
+    const features = [];
+    if (state.locationMute.enabled) features.push('Location');
+    if (state.timerMute.enabled) features.push('Timer');
+    if (state.contactExclusions.enabled) features.push('Contacts');
+    return features;
+  };
+
+  const activeFeatures = getActiveFeatures();
+
   return (
     <div className="animate-fade-in">
       <h2 className="text-3xl font-bold mb-6 text-center text-purple-400">
@@ -24,8 +34,16 @@ const QuickSettings: React.FC<QuickSettingsProps> = ({ onNavigateToSettings }) =
       </h2>
       
       {state.isActive && (
-        <div className="bg-gray-700 text-gray-300 text-sm font-medium py-2 px-4 rounded-full text-center mb-6">
-          Auto-Mute: <span className="text-green-400">Active</span>
+        <div className="bg-gray-700 text-gray-300 text-sm font-medium py-3 px-4 rounded-lg text-center mb-6 border-l-4 border-green-400">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            <span className="text-green-400 font-semibold">Auto-Mute Active</span>
+          </div>
+          {activeFeatures.length > 0 && (
+            <div className="text-xs text-gray-400">
+              Active: {activeFeatures.join(', ')}
+            </div>
+          )}
         </div>
       )}
 
@@ -43,9 +61,16 @@ const QuickSettings: React.FC<QuickSettingsProps> = ({ onNavigateToSettings }) =
         ))}
         
         <div
-          className="bg-purple-700 hover:bg-purple-800 text-white font-bold py-5 px-6 rounded-lg shadow-lg cursor-pointer transition-all duration-200 ease-in-out flex flex-col items-center justify-center text-center group"
+          className={`${
+            state.isActive 
+              ? 'bg-green-600 hover:bg-green-700 border-2 border-green-400' 
+              : 'bg-purple-700 hover:bg-purple-800'
+          } text-white font-bold py-5 px-6 rounded-lg shadow-lg cursor-pointer transition-all duration-200 ease-in-out flex flex-col items-center justify-center text-center group relative`}
           onClick={onNavigateToSettings}
         >
+          {state.isActive && (
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+          )}
           <VolumeX className="h-8 w-8 mb-2 group-hover:scale-110 transition-transform duration-200" />
           <span className="text-sm font-medium">Auto-Mute</span>
         </div>

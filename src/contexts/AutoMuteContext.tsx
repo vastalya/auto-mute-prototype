@@ -165,11 +165,13 @@ const AutoMuteContext = createContext<AutoMuteContextType | undefined>(undefined
 export function AutoMuteProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(autoMuteReducer, initialState);
 
-  // Update active status based on enabled features
+  // Update active status based on ANY enabled features
   useEffect(() => {
-    const isActive = state.locationMute.enabled || state.timerMute.enabled;
+    const isActive = state.locationMute.enabled || 
+                    state.timerMute.enabled || 
+                    state.contactExclusions.enabled;
     dispatch({ type: 'SET_ACTIVE_STATUS', payload: isActive });
-  }, [state.locationMute.enabled, state.timerMute.enabled]);
+  }, [state.locationMute.enabled, state.timerMute.enabled, state.contactExclusions.enabled]);
 
   // Simulate location tracking
   useEffect(() => {
